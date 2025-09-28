@@ -1,9 +1,10 @@
 'use client';
 import React, { FC, useState } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import type { DateRange as RDDateRange } from 'react-day-picker';
+
 import { Button } from '../ui/button';
 import { Calendar } from '../ui/calendar';
-import type { DateRange as RDDateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 export interface DateRange {
   from?: string;

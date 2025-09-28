@@ -1,7 +1,7 @@
 'use client';
 import React, { FC } from 'react';
+
 import { Input } from '@/components/ui/input';
-import { Filters } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Filters } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
 import { InputDate } from '../input-date';
 
 interface FilterBarProps {

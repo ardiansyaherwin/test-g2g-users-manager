@@ -1,10 +1,12 @@
 'use client';
-import { Filters, SortDir, SortKey } from '@/lib/types';
-import React, { useState } from 'react';
-import { SortBar } from './sort-bar';
-import { FilterBar } from './filter-bar';
-import { Button } from '@/components/ui/button';
 import { Filter } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Filters, SortDir, SortKey } from '@/lib/types';
+
+import { FilterBar } from './filter-bar';
+import { SortBar } from './sort-bar';
 
 interface ToolBarProps {
   sortKey: SortKey;

@@ -1,4 +1,4 @@
-export type Gender = 'male' | 'female' | 'all';
+export type Gender = 'male' | 'female' | 'all' | 'other';
 export type ViewMode = 'list' | 'grid';
 
 export type UserDoc = {
@@ -38,3 +38,4 @@ export type DateRange = {
   from?: Date;
   to?: Date;
 };
+export type UserCardSelection = 'delete' | 'edit';

@@ -1,7 +1,8 @@
-import React, { FC } from 'react';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Download, LayoutGrid, ListIcon } from 'lucide-react';
+import React, { FC } from 'react';
+
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ViewMode } from '@/lib/types';
 
 interface ToolbarProps {
