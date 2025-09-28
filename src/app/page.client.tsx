@@ -84,15 +84,19 @@ function PageClient() {
         view={view}
         onViewToggle={setView}
         onExport={handleExportCSV}
+        onAddUser={() => {
+          setSelectedUser(undefined);
+          setEditDialogOpen(true);
+        }}
       />
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>{selectedUser ? 'Edit' : 'Add'} User</DialogTitle>
           </DialogHeader>
           <UserForm
-            mode="edit"
+            mode={selectedUser ? 'edit' : 'add'}
             initialValues={selectedUser}
             onSubmit={(vals) => handleSubmitForm(vals, selectedUser?.id || '')}
           />
@@ -116,8 +120,6 @@ function PageClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <UserForm onSubmit={addUser} />
 
       <ToolBar
         sortKey={sortKey}
