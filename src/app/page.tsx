@@ -1,103 +1,225 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useMemo, useState } from 'react';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  serverTimestamp,
+  doc,
+  deleteDoc,
+  updateDoc,
+  query,
+} from 'firebase/firestore';
+import type {
+  DateRange,
+  Filters,
+  SortKey,
+  UserDoc,
+  UserInput,
+  ViewMode,
+} from '@/lib/types';
+
+import { Separator } from '@/components/ui/separator';
+import { escapeCSV, toISO } from '@/helpers/to-ISO-helper';
+import { UserForm } from '@/components/molecules/user-form';
+import { ListView } from '@/components/molecules/user-card/list-view';
+import { GridView } from '@/components/molecules/user-card/grid-view';
+import { PageHeader } from '@/components/molecules/page-header';
+import { ToolBar } from '@/components/molecules/toolbar';
+
+const USERS_COL = 'users';
+
+export default function Page() {
+  const [view, setView] = useState<ViewMode>('list');
+  const [users, setUsers] = useState<UserDoc[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [createdRange, setCreatedRange] = useState<DateRange>({});
+
+  const [filters, setFilters] = useState<Filters>({
+    name: '',
+    email: '',
+    gender: 'all',
+    hasProfile: 'all',
+  });
+
+  useEffect(() => {
+    const q = query(collection(db, USERS_COL));
+    const unsub = onSnapshot(q, (snap) => {
+      const list: UserDoc[] = snap.docs.map((d) => {
+        const data = d.data() as UserDoc;
+        return {
+          id: d.id,
+          name: data.name ?? '',
+          email: data.email ?? '',
+          dob: data.dob ?? '',
+          gender: data.gender ?? 'other',
+          profilePicture: data.profilePicture ?? '',
+          createdAt: toISO(data.createdAt),
+          updatedAt: toISO(data.updatedAt),
+        };
+      });
+      setUsers(list);
+    });
+    return () => unsub();
+  }, []);
+
+  const filtered = useMemo(
+    () => applyFilters(users, filters),
+    [users, filters]
+  );
+
+  const displayed = useMemo(
+    () => applySort(filtered, sortKey, sortDir),
+    [filtered, sortKey, sortDir]
+  );
+
+  async function addUser(input: UserInput) {
+    await addDoc(collection(db, USERS_COL), {
+      ...input,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async function deleteUser(id: string) {
+    await deleteDoc(doc(db, USERS_COL, id));
+  }
+
+  async function updateUser(id: string, patch: Partial<UserInput>) {
+    await updateDoc(doc(db, USERS_COL, id), {
+      ...patch,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  function exportCSV() {
+    const csv = [
+      [
+        'Name',
+        'Email',
+        'DOB',
+        'Gender',
+        'Profile Picture',
+        'Created At',
+        'Updated At',
+      ],
+      ...displayed.map((u) => [
+        u.name,
+        u.email,
+        u.dob,
+        u.gender,
+        u.profilePicture ?? '',
+        u.createdAt,
+        u.updatedAt,
+      ]),
+    ]
+      .map((r) => r.map(escapeCSV).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users-${new Date().toISOString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function applySort(
+    list: UserDoc[],
+    key: SortKey,
+    dir: 'asc' | 'desc'
+  ): UserDoc[] {
+    const sorted = [...list].sort((a, b) => {
+      const va = (a[key] ?? '').toString().toLowerCase();
+      const vb = (b[key] ?? '').toString().toLowerCase();
+      if (va < vb) return -1;
+      if (va > vb) return 1;
+      return 0;
+    });
+    return dir === 'asc' ? sorted : sorted.reverse();
+  }
+
+  function applyFilters(list: UserDoc[], f: Filters): UserDoc[] {
+    const inRange = (iso: string, from?: string, to?: string) => {
+      if (!iso) return false;
+      const t = new Date(iso).getTime();
+      if (from && t < new Date(from).getTime()) return false;
+      if (to && t > new Date(to).getTime()) return false;
+      return true;
+    };
+
+    return list.filter((u) => {
+      if (f.name && !u.name.toLowerCase().includes(f.name.toLowerCase()))
+        return false;
+      if (f.email && !u.email.toLowerCase().includes(f.email.toLowerCase()))
+        return false;
+
+      if (f.gender && f.gender !== 'all' && u.gender !== f.gender) return false;
+
+      if (f.dobFrom || f.dobTo) {
+        const dobT = u.dob ? new Date(u.dob).getTime() : NaN;
+        if (f.dobFrom && (!u.dob || dobT < new Date(f.dobFrom).getTime()))
+          return false;
+        if (f.dobTo && (!u.dob || dobT > new Date(f.dobTo).getTime()))
+          return false;
+      }
+
+      if (f.hasProfile === 'with' && !u.profilePicture) return false;
+      if (f.hasProfile === 'without' && !!u.profilePicture) return false;
+
+      if (
+        (f.createdFrom || f.createdTo) &&
+        !inRange(u.createdAt, f.createdFrom, f.createdTo)
+      )
+        return false;
+      if (
+        (f.updatedFrom || f.updatedTo) &&
+        !inRange(u.updatedAt, f.updatedFrom, f.updatedTo)
+      )
+        return false;
+
+      return true;
+    });
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-6">
+      <PageHeader
+        title="Users Manager"
+        view={view}
+        onViewToggle={setView}
+        onExport={exportCSV}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <UserForm onSubmit={addUser} />
+
+      <ToolBar
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSortKey={setSortKey}
+        onSortDir={setSortDir}
+        filters={filters}
+        onFilters={setFilters}
+      />
+      <Separator className="my-4" />
+
+      {view === 'list' ? (
+        <ListView
+          users={displayed}
+          onDelete={deleteUser}
+          onUpdate={updateUser}
+        />
+      ) : (
+        <GridView
+          users={displayed}
+          onDelete={deleteUser}
+          onUpdate={updateUser}
+        />
+      )}
     </div>
   );
 }
