@@ -33,9 +33,13 @@ const ToolBar = ({
           sortDir={sortDir}
           sortKey={sortKey}
         />
-        <Button variant="outline" onClick={() => setOpen((prev) => !prev)}>
-          <Filter className="mr-2 h-4 w-4" />
-          {open ? 'Hide Filters' : 'Show Filters'}
+        <Button
+          variant={open ? 'default' : 'outline'}
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex gap-2 items-center"
+        >
+          <Filter className="h-4 w-4" />
+          <span className="hidden md:block">Filters</span>
         </Button>
       </div>
       <FilterBar filters={filters} onFilters={onFilters} open={open} />

@@ -27,7 +27,7 @@ const SortBar: FC<SortBarProps> = ({
       <div className="space-y-1">
         <Label htmlFor="sortKey">Sort by</Label>
         <Select value={sortKey} onValueChange={(v) => onSortKey(v as SortKey)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="md:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -47,7 +47,7 @@ const SortBar: FC<SortBarProps> = ({
           value={sortDir}
           onValueChange={(v) => onSortDir(v as 'asc' | 'desc')}
         >
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="md:w-[180px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

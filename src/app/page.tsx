@@ -144,7 +144,8 @@ export default function Page() {
   }
 
   function applyFilters(list: UserDoc[], f: Filters): UserDoc[] {
-    const inRange = (iso: string, from?: string, to?: string) => {
+    // Helper to check if an ISO date is within a given range
+    const inRange = (iso: string, from?: string | Date, to?: string | Date) => {
       if (!iso) return false;
       const t = new Date(iso).getTime();
       if (from && t < new Date(from).getTime()) return false;
@@ -153,29 +154,33 @@ export default function Page() {
     };
 
     return list.filter((u) => {
+      // --- text search ---
       if (f.name && !u.name.toLowerCase().includes(f.name.toLowerCase()))
         return false;
       if (f.email && !u.email.toLowerCase().includes(f.email.toLowerCase()))
         return false;
 
+      // --- gender filter ---
       if (f.gender && f.gender !== 'all' && u.gender !== f.gender) return false;
 
+      // --- DOB range ---
       if (f.dobFrom || f.dobTo) {
-        const dobT = u.dob ? new Date(u.dob).getTime() : NaN;
-        if (f.dobFrom && (!u.dob || dobT < new Date(f.dobFrom).getTime()))
-          return false;
-        if (f.dobTo && (!u.dob || dobT > new Date(f.dobTo).getTime()))
-          return false;
+        if (!u.dob) return false;
+        if (!inRange(u.dob, f.dobFrom, f.dobTo)) return false;
       }
 
+      // --- profile picture presence ---
       if (f.hasProfile === 'with' && !u.profilePicture) return false;
       if (f.hasProfile === 'without' && !!u.profilePicture) return false;
 
+      // --- createdAt range ---
       if (
         (f.createdFrom || f.createdTo) &&
         !inRange(u.createdAt, f.createdFrom, f.createdTo)
       )
         return false;
+
+      // --- updatedAt range ---
       if (
         (f.updatedFrom || f.updatedTo) &&
         !inRange(u.updatedAt, f.updatedFrom, f.updatedTo)

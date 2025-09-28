@@ -22,9 +22,9 @@ export type SortKey = keyof Pick<
 export type Filters = {
   name: string;
   email: string;
-  dobFrom?: string;
-  dobTo?: string;
-  gender?: Gender | '';
+  dobFrom?: string | Date;
+  dobTo?: string | Date;
+  gender?: Gender | 'all';
   hasProfile?: 'all' | 'with' | 'without';
   createdFrom?: string;
   createdTo?: string;
