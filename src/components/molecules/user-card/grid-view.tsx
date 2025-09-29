@@ -26,7 +26,7 @@ const GridView: FC<GridViewProps> = ({ users, onSelect }) => {
           <div>
             <div className="[&>*]:text-xs [&>*]:text-muted-foreground">
               <p>{u.email}</p>
-              <p>{format(u.dob, DISPLAY_DATE_FORMAT)}</p>
+              {u.dob && <p>{format(u.dob, DISPLAY_DATE_FORMAT)}</p>}
               <p className="capitalize">{u.gender}</p>
             </div>
           </div>

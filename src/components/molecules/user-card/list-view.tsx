@@ -33,7 +33,7 @@ const ListView: FC<ListViewProps> = ({ users, onSelect }) => {
                   {u.name}
                 </p>
                 <p>{u.email}</p>
-                <p>{format(u.dob, DISPLAY_DATE_FORMAT)}</p>
+                {u.dob && <p>{format(u.dob, DISPLAY_DATE_FORMAT)}</p>}
                 <p className="capitalize">{u.gender}</p>
                 <em>
                   Last updated at:{' '}
